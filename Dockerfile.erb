@@ -1,0 +1,50 @@
+# Drafting, don't use
+
+# # #
+# Docker image for a complete palava.tv WebRTC application
+# # #
+
+FROM janlelis/ruby-only:2.1.4
+MAINTAINER palava e. V. <contact@palava.tv>
+ENV DEBIAN_FRONTEND noninteractive
+
+# Foundation
+RUN apt-get -y update
+RUN apt-get -y install python-software-properties git-core curl
+
+# Redis
+RUN apt-add-repository -y ppa:rwky/redis
+RUN apt-get update
+RUN apt-get install redis-server
+
+#!! bind 127.0.0.1
+
+# nginx
+RUN \
+  apt-get -y install software-properties-common && \
+  add-apt-repository -y ppa:nginx/stable && \
+  apt-get -y update && \
+  apt-get -y install nginx && \
+  echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
+  chown -R www-data:www-data /var/lib/nginx
+
+# Add user
+RUN adduser --disabled-password --home /home/palava --gecos "" palava
+USER /home/palava
+WORKDIR /home/palava
+
+# Get latest portal source and build w/ ENV settings
+ENV PALAVA_BASE_ADDRESS "https://example.com"
+ENV PALAVA_RTC_ADDRESS "wss://example.com/info/machine"
+RUN git clone --recursive https://github.com/palavatv/palava-portal.git
+WORKDIR /home/palava/palava-portal
+RUN bundle --without development:test --deployment
+RUN bundle exec middleman build
+
+# Get machine
+RUN gem install palava_machine
+
+# Docker settings
+EXPOSE 80 443
+CMD [] # TODO supervisor
+
