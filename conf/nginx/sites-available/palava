@@ -1,0 +1,31 @@
+upstream palava_machine {
+  server 127.0.0.1:4240;
+}
+ 
+server {
+  listen 443 ssl;
+  server_name example.com; 
+ 
+  ssl on;
+  ssl_certificate /etc/nginx/certs/cert.crt;
+  ssl_certificate_key /etc/nginx/certs/cert.key;
+ 
+  root /home/palava/palava-portal/build;
+  access_log /var/log/palava/nginx.access.log;
+  error_log /var/log/palava/nginx.error.log;
+ 
+  location /info/machine {
+    proxy_pass http://palava_machine;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 86400;
+  }
+ 
+  location / {
+    if (-f $request_filename) {
+      break;
+    }
+    rewrite ^/.+$ / last;
+  }
+}
