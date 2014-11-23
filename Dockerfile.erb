@@ -18,6 +18,7 @@ RUN apt-get update
 RUN apt-get install redis-server
 
 #!! bind 127.0.0.1
+RUN sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/g" /etc/redis/redis.conf
 
 # nginx
 RUN \
