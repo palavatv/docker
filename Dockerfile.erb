@@ -4,17 +4,17 @@
 # Docker image for a complete palava.tv WebRTC application
 # # #
 
-#FROM janlelis/ruby-only:2.1.4
-FROM library/ubuntu
+FROM library/ubuntu:trusty
 MAINTAINER palava e. V. <contact@palava.tv>
 ENV DEBIAN_FRONTEND noninteractive
 
 ## PULL UPGRADES
-RUN apt-get -y upgrade
+RUN \
+	apt-get -y update && \
+	apt-get -y upgrade
 
 ## PREPARATIONS
 RUN \ 
-	apt-get -y update && \
 	apt-get -y install software-properties-common git-core curl && \
 	apt-get -y install build-essential libstdc++6 ruby ruby-dev
 
