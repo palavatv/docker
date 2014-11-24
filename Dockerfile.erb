@@ -4,58 +4,53 @@
 # Docker image for a complete palava.tv WebRTC application
 # # #
 
-FROM janlelis/ruby-only:2.1.4
+#FROM janlelis/ruby-only:2.1.4
+FROM library/ubuntu
 MAINTAINER palava e. V. <contact@palava.tv>
 ENV DEBIAN_FRONTEND noninteractive
 
+## PULL UPGRADES
+RUN apt-get -y upgrade
+
 ## PREPARATIONS
-RUN apt-get -y update
-RUN apt-get -y install python-software-properties git-core curl
+RUN \ 
+	apt-get -y update && \
+	apt-get -y install software-properties-common git-core curl && \
+	apt-get -y install build-essential libstdc++6 ruby ruby-dev
 
 ## INSTALL REDIS
-RUN apt-add-repository -y ppa:rwky/redis
-RUN apt-get update
-RUN apt-get install redis-server
-
-#!! bind 127.0.0.1
-RUN sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/g" /etc/redis/redis.conf
-
-## NGINX
-# Install
 RUN \
-  apt-get -y install software-properties-common && \
-  add-apt-repository -y ppa:nginx/stable && \
-  apt-get -y update && \
-  apt-get -y install nginx && \
-  echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
-  chown -R www-data:www-data /var/lib/nginx
+	add-apt-repository -y ppa:rwky/redis && \
+	apt-get -y install redis-server
 
-# Add palava config
-ADD conf/nginx/sites-available/* /etc/nginx/sites-available/
+## INSTALL NGINX
+RUN \
+	add-apt-repository -y ppa:nginx/stable && \
+	apt-get -y update && \
+	apt-get -y install nginx && \
+	echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
+	chown -R www-data:www-data /var/lib/nginx && \
+	sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/g" /etc/redis/redis.conf
+
+# Add config
+ADD conf/nginx/sites-available/palava /etc/nginx/sites-available/
 
 # Add certs mount
 VOLUME ["/etc/nginx/certs"]
+
+## INSTALL REQUIRED GEMS
+RUN gem install bundler palava_machine middleman
 
 # Add user
 RUN adduser --disabled-password --home /home/palava --gecos "" palava
 USER palava
 WORKDIR /home/palava
 
-# @TODO: Get latest portal source and build w/ ENV settings 
-# ENV PALAVA_BASE_ADDRESS "https://example.com"
-# ENV PALAVA_RTC_ADDRESS "wss://example.com/info/machine"
-# RUN git clone --recursive https://github.com/palavatv/palava-portal.git
-# WORKDIR /home/palava/palava-portal
-# RUN bundle --without development:test --deployment
-# RUN bundle exec middleman build
-
 ## INSTALL PALAVA
-# Get machine
-RUN gem install palava_machine
 
 # PULL PORTAL
-RUN git clone --recursive https://github.com/palavatv/palava-portal.git ~/portal
-WORKDIR ~/portal
+RUN git clone --recursive https://github.com/palavatv/palava-portal.git /home/palava/portal
+WORKDIR /home/palava/portal
 RUN bundle --without development:test --deployment
 # @TODO must be done on startup
 # export PALAVA_BASE_ADDRESS="https://example.com"
@@ -65,4 +60,12 @@ RUN bundle --without development:test --deployment
 # Docker settings
 EXPOSE 80 443
 CMD [] # TODO supervisor
+
+# @TODO: Get latest portal source and build w/ ENV settings 
+# ENV PALAVA_BASE_ADDRESS "https://example.com"
+# ENV PALAVA_RTC_ADDRESS "wss://example.com/info/machine"
+# RUN git clone --recursive https://github.com/palavatv/palava-portal.git
+# WORKDIR /home/palava/palava-portal
+# RUN bundle --without development:test --deployment
+# RUN bundle exec middleman build
 
