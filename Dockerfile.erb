@@ -1,10 +1,8 @@
-# Drafting, don't use
-
 # # #
 # Docker image for a complete palava.tv WebRTC application
 # # #
 
-FROM library/ubuntu:trusty
+FROM ubuntu:trusty
 MAINTAINER palava e. V. <contact@palava.tv>
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -13,35 +11,38 @@ RUN \
 	apt-get -y update && \
 	apt-get -y upgrade
 
-## PREPARATIONS
+## ESSENTIAL PACKAGES
 RUN \ 
-	apt-get -y install software-properties-common git-core curl && \
-	apt-get -y install build-essential libstdc++6 ruby ruby-dev
+	apt-get -y install software-properties-common git-core curl \
+	                   build-essential libstdc++6 ruby ruby-dev
+
+## ADD PPAS
+RUN \
+	add-apt-repository -y ppa:rwky/redis && \
+	add-apt-repository -y ppa:nginx/stable && \
+	apt-get -y update
 
 ## INSTALL REDIS
 RUN \
-	add-apt-repository -y ppa:rwky/redis && \
-	apt-get -y install redis-server
+	apt-get -y install redis-server && \
+	sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/g" /etc/redis/redis.conf
 
 ## INSTALL NGINX
 RUN \
-	add-apt-repository -y ppa:nginx/stable && \
-	apt-get -y update && \
 	apt-get -y install nginx && \
 	echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
-	chown -R www-data:www-data /var/lib/nginx && \
-	sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/g" /etc/redis/redis.conf
+	chown -R www-data:www-data /var/lib/nginx
 
-# Add config
+# NGINX: config
 ADD conf/nginx/sites-available/palava /etc/nginx/sites-available/
 
-# Add certs mount
+# NGINX: certs mount
 VOLUME ["/etc/nginx/certs"]
 
 ## INSTALL REQUIRED GEMS
 RUN gem install bundler palava_machine middleman
 
-# Add user
+## CREATE USER
 RUN adduser --disabled-password --home /home/palava --gecos "" palava
 USER palava
 WORKDIR /home/palava
@@ -57,15 +58,7 @@ RUN bundle --without development:test --deployment
 # export PALAVA_RTC_ADDRESS="wss://example.com/info/machine"
 # bundle exec middleman build
 
-# Docker settings
+## DOCKER SETTINGS
 EXPOSE 80 443
 CMD [] # TODO supervisor
-
-# @TODO: Get latest portal source and build w/ ENV settings 
-# ENV PALAVA_BASE_ADDRESS "https://example.com"
-# ENV PALAVA_RTC_ADDRESS "wss://example.com/info/machine"
-# RUN git clone --recursive https://github.com/palavatv/palava-portal.git
-# WORKDIR /home/palava/palava-portal
-# RUN bundle --without development:test --deployment
-# RUN bundle exec middleman build
 
