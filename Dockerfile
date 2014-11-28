@@ -57,5 +57,5 @@ ADD palava.nginx /etc/nginx/sites-available/palava
 ## LAUNCH SETTINGS
 WORKDIR /home/palava
 ADD start-palava.sh /home/palava/
-CMD ['./start-palava.sh']
+CMD '/home/palava/start-palava.sh'
 
