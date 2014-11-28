@@ -34,14 +34,9 @@ RUN \
 	echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
 	chown -R www-data:www-data /var/lib/nginx
 
-# NGINX: config
-ADD conf/nginx/sites-available/palava /etc/nginx/sites-available/
-
-# NGINX: certs mount
-VOLUME ["/etc/nginx/certs"]
-
 ## INSTALL REQUIRED GEMS
-RUN gem install bundler palava_machine middleman
+RUN \
+	gem install bundler palava_machine middleman
 
 ## CREATE USER
 RUN adduser --disabled-password --home /home/palava --gecos "" palava
@@ -52,10 +47,12 @@ WORKDIR /home/palava/portal
 RUN bundle --without development:test --deployment
 
 ## DOCKER SETTINGS
+VOLUME ["/etc/nginx/certs"]
 EXPOSE 80 443
 
-## CONFIGURE SUPERVISOR
+## CONFIGURE SUPERVISOR && NGINX
 ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ADD palava.nginx /etc/nginx/sites-available/palava
 
 ## LAUNCH SETTINGS
 WORKDIR /home/palava
