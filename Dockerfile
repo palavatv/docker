@@ -11,10 +11,11 @@ RUN \
 	apt-get -y update && \
 	apt-get -y upgrade
 
-## ESSENTIAL PACKAGES
+## APT PACKAGES
 RUN \ 
 	apt-get -y install software-properties-common git-core curl \
-	                   build-essential libstdc++6 ruby ruby-dev
+	                   build-essential libstdc++6 ruby ruby-dev \
+			   supervisor
 
 ## ADD PPAS
 RUN \
@@ -44,21 +45,20 @@ RUN gem install bundler palava_machine middleman
 
 ## CREATE USER
 RUN adduser --disabled-password --home /home/palava --gecos "" palava
-USER palava
-WORKDIR /home/palava
 
-## INSTALL PALAVA
-
-# PULL PORTAL
+## PULL PORTAL
 RUN git clone --recursive https://github.com/palavatv/palava-portal.git /home/palava/portal
 WORKDIR /home/palava/portal
 RUN bundle --without development:test --deployment
-# @TODO must be done on startup
-# export PALAVA_BASE_ADDRESS="https://example.com"
-# export PALAVA_RTC_ADDRESS="wss://example.com/info/machine"
-# bundle exec middleman build
 
 ## DOCKER SETTINGS
 EXPOSE 80 443
-CMD [] # TODO supervisor
+
+## CONFIGURE SUPERVISOR
+ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+## LAUNCH SETTINGS
+WORKDIR /home/palava
+ADD start-palava.sh /home/palava/
+CMD ['./start-palava.sh']
 
